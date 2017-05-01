@@ -1,0 +1,187 @@
+/**
+ * **********************************************************************
+ * ************************ LATIN SQUARE TOOLBOX ************************
+ * **********************************************************************
+ * Copyright (C) 2017 Nathan O. Schmidt <c0ldc4lcul4ti0n@gmail.com>
+ * Copyright (C) 2017 Will Unger <zomborg1@gmail.com>
+ * **********************************************************************
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *  
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * **********************************************************************
+ */
+
+package latinsquare;
+
+/**
+ * <h1>LatinSquareGenerator</h1>
+ * 
+ * <p>This abstract class represents a generator that either constructs new Latin squares
+ * or "generates"/reads existing Latin squares that are encoded in an ordered-triple format input file.
+ * This represents the base class for various generation algorithms and also the input file parsing
+ * algorithm for post-processing (ex. transversal counting).
+ * </p>
+ * 
+ * @author Nathan O. Schmidt
+ * @author Will Unger
+ * @version 1.10
+ */
+public abstract class LatinSquareGenerator 
+{
+	protected LatinSquareJob job;
+	protected boolean[][] row;
+	protected boolean[][] col;
+	protected Square square;
+	
+	/**
+	 * 
+	 * Class constructor that accepts a user-specified job configuration and
+	 * instantiates a new job.
+	 * 
+	 * @param config The user-specified job configuration.
+	 */
+	public LatinSquareGenerator(LatinSquareJobConfig config)
+	{
+		job = new LatinSquareJob(config);
+		initializeSquareTemplate();
+	}
+
+	/**
+	 * Initializes the generator's attributes based on the user-specified job configuration.
+	 */
+	protected void initializeSquareTemplate()
+	{
+		int order = job.getOrder();
+		row = new boolean[order][order];
+		col = new boolean[order][order];
+		square = new Square(order);
+		
+		for(int i = 0; i < order; i++)
+		{
+			for(int j = 0; j < order; j++) { row[i][j] = col[i][j] = true; }
+		}
+	}
+	
+	/**
+	 * Returns the order of the Latin square(s) in the data set.
+	 * 
+	 * @return int The order of the Latin square(s).
+	 */
+	public int getOrder() { return job.getOrder(); }
+	
+	/**
+	 * Returns true if the Latin square(s) will be printed in the human-readable format. 
+	 * If this is not set, then they will be printed in the
+	 * ordered-triple format that can be parsed for post-processing (ex. transversal counting).
+	 * 
+	 * @return boolean The human-readable print format flag.
+	 */
+	public boolean isPrintingHumanReadable() { return job.isPrintingHumanReadable(); }
+	
+	/**
+	 * Returns true if the number of transversals will be counted for each Latin square.
+	 * 
+	 * @return boolean The transversal count flag.
+	 */
+	public boolean isCountingTransversals() { return job.isCountingTransversals(); }
+	
+	/**
+	 * Returns true if the list of all transversals will be printed for each Latin square.
+	 * 
+	 * @return boolean The transversal print flag.
+	 */
+	public boolean isPrintingTransversals() { return job.isPrintingTransversals(); }
+	
+	/**
+	 * Returns true if the transversal heat map will be generated and printed for each Latin square.
+	 * 
+	 * @return boolean The heat map print flag.
+	 */
+	public boolean isPrintingHeatMap() { return job.isPrintingHeatMap(); }
+	
+	/**
+	 * Returns true if the job report summary will be printed upon completion.
+	 * 
+	 * @return boolean The job report summary print flag.
+	 */
+	public boolean isPrintingReport() { return job.isPrintingReport(); }
+	
+	/**
+	 * Processes a Latin square by computing the user-specified transversal characteristics.
+	 * 
+	 * @param square The Latin square to process.
+	 */
+	protected void processSquare(Square square)
+	{
+		long squareCount = job.getNumSquaresProcessed() + 1;
+		long transversalCount = 0;
+		
+		// if counting transversals, then do it!
+		if(isCountingTransversals() || isPrintingHeatMap() || isPrintingTransversals())
+		{
+			System.out.println("Latin Square #" + squareCount + ": ");
+			transversalCount = square.getTransversalCount(); 
+			
+			// if keeping track of total job stats, then keep track of transversal count
+			if(isPrintingReport()) { job.submitTransversalCount(transversalCount); }
+		}
+
+		// print the user-specified transversal characteristics
+		printSquareStuff(square, squareCount, transversalCount);
+		
+		// increment # of Latin squares generated/read
+		job.incrementNumSquaresProcessed();
+	}
+	
+	/**
+	 * Prints the user-specified transversal characteristics for a Latin square being processed.
+	 * 
+	 * @param square The current square.
+	 * @param squareCount The number of squares that have already been processed.
+	 * @param transversalCount The transversal count for the current square.
+	 */
+	protected void printSquareStuff(Square square, long squareCount, long transversalCount)
+	{
+		// print square in either ordered-triple or human-readable format
+		if(!isPrintingHumanReadable()) { System.out.println(square); }
+		else { System.out.println(square.toStringHumanReadable()); }
+		
+		// if counting transversals
+		if(isCountingTransversals()) 
+		{ 
+			System.out.println("Latin Square #" + squareCount +" Transversal Count: " + transversalCount + "\n"); 
+		}
+		
+		// if printing the list of all transversals
+		if(isPrintingTransversals()) 
+		{ 
+			System.out.println("Latin Square #" + squareCount + " Transversal List: \n" + square.toStringTransversalsOrderedTriple()); 
+		}
+		
+		// if printing the transversal heat map
+		if(isPrintingHeatMap()) 
+		{ 
+			System.out.println("Latin Square #" + squareCount + " Transversal Heat Map: ");
+			if(!isPrintingHumanReadable()) { System.out.println(square.toStringTransversalHeatMapOrderedTriple()); }
+			else { System.out.println(square.toStringTransversalHeatMapHumanReadable()); }
+			
+			// if the heat map has a uniform/constant heat value, then print the formula
+			String transversalFormulaStr = square.toStringTransversalFormula();
+			if(!transversalFormulaStr.equals("")) { System.out.println(transversalFormulaStr + "\n"); }
+		}
+	}
+	
+	/**
+	 * Generates or reads in a data set of Latin squares according to some algorithm.
+	 */
+	protected abstract void go();
+}
