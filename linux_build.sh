@@ -38,6 +38,12 @@ if [ -n $maven_cmd_exists ] ; then
 
     echo "Found the required Maven command \"$maven_cmd\"! :D "
 
+    # make sure the unit test output directory is created
+    unit_test_output_dir="$base_dir/src/test/resources/data/actual";
+    if [ ! -d $unit_test_output_dir ]; then
+        mkdir $unit_test_output_dir
+    fi
+    
     # attempt to build the Latin Square Toolbox as deployable jar
     toolbox_jar_build_message=$($maven_cmd package)
     echo "$toolbox_jar_build_message"
